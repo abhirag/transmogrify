@@ -13,14 +13,29 @@ static int leave_span_callback(MD_SPANTYPE type, void* detail, void* userdata);
 static int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size,
                          void* userdata);
 static void debug_log_callback(const char* msg, void* userdata);
-static int render_verbatim(char const* s, md_latex_data* data);
+static int render_verbatim(char const* text, md_latex_data* data);
+static int render_verbatim_len(MD_CHAR* text, MD_SIZE size,
+                               md_latex_data* data);
 
-static int render_verbatim(char const* s, md_latex_data* data) {
-  sds str = sdscat(data->output, s);
+static int render_verbatim(char const* text, md_latex_data* data) {
+  sds str = sdscat(data->output, text);
   if (!str) {
     fprintf(
         stderr,
         "transmogrify::render_verbatim failed in appending to SDS string\n");
+    return -1;
+  }
+  data->output = str;
+  return 0;
+}
+
+static int render_verbatim_len(MD_CHAR* text, MD_SIZE size,
+                               md_latex_data* data) {
+  sds str = sdscatlen(data->output, text, size);
+  if (!str) {
+    fprintf(stderr,
+            "transmogrify::render_verbatim_len failed in appending to SDS "
+            "string\n");
     return -1;
   }
   data->output = str;
@@ -75,7 +90,7 @@ static int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size,
   md_latex_data* d = (md_latex_data*)userdata;
   switch (type) {
     case MD_TEXT_NORMAL:
-      if (render_verbatim(text, d) == -1) {
+      if (render_verbatim_len(text, size, d) == -1) {
         return -1;
       }
       break;

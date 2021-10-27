@@ -1,5 +1,7 @@
 #include "transmogrify.h"
 
+#include <string.h>
+
 #include "utest.h"
 
 UTEST(render, paragraph) {
@@ -9,7 +11,7 @@ UTEST(render, paragraph) {
       .code_block_detail = (void*)0,
       .output = sdsempty()};
   char const* input = "this is a paragraph";
-  md_latex(input, sizeof(input), &d);
+  md_latex(input, strlen(input), &d);
   sds expected_output = sdsempty();
   expected_output = sdscatprintf(expected_output,
                                  "\\begin{document}\n"
@@ -17,6 +19,7 @@ UTEST(render, paragraph) {
                                  "\n%s"
                                  "\n\\end{document}",
                                  input);
+  ASSERT_EQ(sdslen(expected_output), sdslen(d.output));
   ASSERT_EQ(0, sdscmp(expected_output, d.output));
   sdsfree(d.output);
 }
@@ -28,7 +31,7 @@ UTEST(render, normal_code_block) {
       .code_block_detail = (void*)0,
       .output = sdsempty()};
   char const* input = "```\nthis is a normal code block\n```";
-  md_latex(input, sizeof(input), &d);
+  md_latex(input, strlen(input), &d);
   sds expected_output = sdsempty();
   expected_output =
       sdscatprintf(expected_output,
