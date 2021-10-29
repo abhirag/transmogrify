@@ -1,5 +1,6 @@
 #include "transmogrify.h"
 
+#include <log.h>
 #include <md4c.h>
 #include <sds.h>
 #include <stdio.h>
@@ -24,8 +25,7 @@ static int process_code_block(md_latex_data* data, void* detail);
 static int render_verbatim(MD_CHAR* text, md_latex_data* data) {
   sds str = sdscat(data->output, text);
   if (!str) {
-    fprintf(
-        stderr,
+    log_fatal(
         "transmogrify::render_verbatim failed in appending to SDS string\n");
     return -1;
   }
@@ -36,9 +36,9 @@ static int render_verbatim(MD_CHAR* text, md_latex_data* data) {
 static int render_verbatim_sds(sds text, md_latex_data* data) {
   sds str = sdscatsds(data->output, text);
   if (!str) {
-    fprintf(stderr,
-            "transmogrify::render_verbatim_sds failed in appending to SDS "
-            "string\n");
+    log_fatal(
+        "transmogrify::render_verbatim_sds failed in appending to SDS "
+        "string\n");
     return -1;
   }
   data->output = str;
@@ -49,9 +49,9 @@ static int render_verbatim_len(MD_CHAR* text, MD_SIZE size,
                                md_latex_data* data) {
   sds str = sdscatlen(data->output, text, size);
   if (!str) {
-    fprintf(stderr,
-            "transmogrify::render_verbatim_len failed in appending to SDS "
-            "string\n");
+    log_fatal(
+        "transmogrify::render_verbatim_len failed in appending to SDS "
+        "string\n");
     return -1;
   }
   data->output = str;
@@ -62,9 +62,9 @@ static int accumulate_code_text(MD_CHAR* text, MD_SIZE size,
                                 md_latex_data* data) {
   sds str = sdscatlen(data->code_text, text, size);
   if (!str) {
-    fprintf(stderr,
-            "transmogrify::accumulate_code_text failed in appending to SDS "
-            "string\n");
+    log_fatal(
+        "transmogrify::accumulate_code_text failed in appending to SDS "
+        "string\n");
     return -1;
   }
   data->code_text = str;

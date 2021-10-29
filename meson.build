@@ -12,6 +12,9 @@ sds = sds_sp.get_variable('sds_dep')
 fe_sp = subproject('fe')
 fe = fe_sp.get_variable('fe_dep')
 
+log_sp = subproject('log')
+log = log_sp.get_variable('log_dep')
+
 inc = include_directories('include')
 transmogrify_src = files('src/transmogrify.c')
 subdir('tests')
@@ -19,7 +22,7 @@ subdir('tests')
 transmogrify = executable('transmogrify', 
                           [transmogrify_src, 'src/main.c'],
                           include_directories: inc,
-                          dependencies: [md4c, sds, fe])
+                          dependencies: [md4c, sds, fe, log])
 
 
 

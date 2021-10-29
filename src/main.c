@@ -1,3 +1,4 @@
+#include <log.h>
 #include <md4c.h>
 #include <sds.h>
 #include <stdio.h>
@@ -13,7 +14,7 @@ int main(void) {
       .output = sdsempty()};
   md_latex("```\nthis is a normal code block\n```",
            strlen("```\nthis is a normal code block\n```"), &d);
-  printf("%s\n", d.output);
+  log_trace("%s\n", d.output);
   sdsfree(d.output);
   sdsfree(d.code_text);
   return 0;
