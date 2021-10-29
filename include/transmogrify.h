@@ -4,7 +4,7 @@
 typedef struct md_latex_data md_latex_data;
 struct md_latex_data {
   sds output;
-  MD_BLOCK_CODE_DETAIL* code_block_detail;
+  sds code_text;
   unsigned flags;
 };
 
