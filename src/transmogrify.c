@@ -20,7 +20,7 @@ static int render_verbatim_len(MD_CHAR* text, MD_SIZE size,
                                md_latex_data* data);
 static int accumulate_code_text(MD_CHAR* text, MD_SIZE size,
                                 md_latex_data* data);
-static int process_code_block(md_latex_data* data, void* detail);
+static int process_code_block(void* detail, md_latex_data* data);
 
 static int render_verbatim(MD_CHAR* text, md_latex_data* data) {
   sds str = sdscat(data->output, text);
@@ -71,7 +71,7 @@ static int accumulate_code_text(MD_CHAR* text, MD_SIZE size,
   return 0;
 }
 
-static int process_code_block(md_latex_data* data, void* detail) {
+static int process_code_block(void* detail, md_latex_data* data) {
   MD_BLOCK_CODE_DETAIL* det = (MD_BLOCK_CODE_DETAIL*)detail;
   if (render_verbatim("\\begin{minted}[frame=leftline, framesep=10pt, "
                       "fontsize=\\footnotesize]{text}\n",
@@ -122,7 +122,7 @@ static int leave_block_callback(MD_BLOCKTYPE type, void* detail,
     case MD_BLOCK_P:
       break;
     case MD_BLOCK_CODE:
-      if (process_code_block(d, detail) == -1) {
+      if (process_code_block(detail, d) == -1) {
         return -1;
       }
       break;
