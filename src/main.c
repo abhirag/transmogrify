@@ -12,7 +12,8 @@ int main(void) {
   int size = 1024 * 1024;
   void* data = malloc(size);
   fe_Context* ctx = fe_open(data, size);
-  sds s = sdsnew("(print (+ 1 1))");
+  bind_fns(ctx);
+  sds s = sdsnew("(set-title \"test\")");
   eval_sds(ctx, s);
 
   md_latex_data d = {

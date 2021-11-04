@@ -1,5 +1,6 @@
 #include "transmogrify.h"
 
+#include <assert.h>
 #include <log.h>
 #include <md4c.h>
 #include <sds.h>
@@ -21,6 +22,19 @@ static int render_verbatim_len(MD_CHAR* text, MD_SIZE size,
 static int accumulate_code_text(MD_CHAR* text, MD_SIZE size,
                                 md_latex_data* data);
 static int process_code_block(void* detail, md_latex_data* data);
+
+typedef struct config config;
+struct config {
+  sds title
+};
+
+static config conf = {.title = (void*)0};
+
+void set_title(char const* title) {
+  assert(conf.title == (void*)0);
+  conf.title = sdsnew(title);
+  printf("%s\n", conf.title);
+}
 
 static int render_verbatim(MD_CHAR* text, md_latex_data* data) {
   sds str = sdscat(data->output, text);

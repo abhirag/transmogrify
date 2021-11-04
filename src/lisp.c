@@ -2,6 +2,7 @@
 
 #include <fe.h>
 #include <sds.h>
+#include <transmogrify.h>
 
 static char readsds(fe_Context* ctx, void* udata);
 static fe_Object* fe_readsds(fe_Context* ctx, sds s);
@@ -28,4 +29,14 @@ void eval_sds(fe_Context* ctx, sds s) {
     fe_eval(ctx, obj);
     fe_restoregc(ctx, gc);
   }
+}
+
+static fe_Object* f_set_title(fe_Context* ctx, fe_Object* arg) {
+  char buf[64];
+  fe_tostring(ctx, fe_nextarg(ctx, &arg), buf, sizeof(buf));
+  set_title(buf);
+}
+
+void bind_fns(fe_Context* ctx) {
+  fe_set(ctx, fe_symbol(ctx, "set-title"), fe_cfunc(ctx, f_set_title));
 }
