@@ -1,6 +1,5 @@
 #include "transmogrify.h"
 
-#include <assert.h>
 #include <log.h>
 #include <md4c.h>
 #include <sds.h>
@@ -31,9 +30,16 @@ struct config {
 static config conf = {.title = (void*)0};
 
 void set_title(char const* title) {
-  assert(conf.title == (void*)0);
-  conf.title = sdsnew(title);
-  printf("%s\n", conf.title);
+  if (conf.title == (void*)0) {
+    conf.title = sdsnew(title);
+  } else {
+    sdsclear(conf.title);
+    conf.title = sdscat(conf.title, title);
+  }
+
+  if (conf.title == (void*)0) {
+    log_fatal("transmogrify::set_title failed\n");
+  }
 }
 
 static int render_verbatim(MD_CHAR* text, md_latex_data* data) {
@@ -184,4 +190,10 @@ int md_latex(const MD_CHAR* input, MD_SIZE input_size, md_latex_data* data) {
                       (void*)0};
 
   return md_parse(input, input_size, &parser, data);
+}
+
+void transmogrify_free(md_latex_data* data) {
+  sdsfree(conf.title);
+  sdsfree(data->code_text);
+  sdsfree(data->output);
 }

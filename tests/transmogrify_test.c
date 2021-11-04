@@ -21,8 +21,8 @@ UTEST(render, paragraph) {
                                  input);
   ASSERT_EQ(sdslen(expected_output), sdslen(d.output));
   ASSERT_EQ(0, sdscmp(expected_output, d.output));
-  sdsfree(d.output);
-  sdsfree(d.code_text);
+  transmogrify_free(&d);
+  sdsfree(expected_output);
 }
 
 UTEST(render, normal_code_block) {
@@ -42,8 +42,8 @@ UTEST(render, normal_code_block) {
                    "\n\\end{document}",
                    input);
   ASSERT_EQ(0, sdscmp(expected_output, d.output));
-  sdsfree(d.output);
-  sdsfree(d.code_text);
+  transmogrify_free(&d);
+  sdsfree(expected_output);
 }
 
 UTEST_MAIN();

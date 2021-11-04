@@ -2,7 +2,8 @@
 
 #include <fe.h>
 #include <sds.h>
-#include <transmogrify.h>
+
+#include "transmogrify.h"
 
 static char readsds(fe_Context* ctx, void* udata);
 static fe_Object* fe_readsds(fe_Context* ctx, sds s);

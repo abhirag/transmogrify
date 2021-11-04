@@ -10,3 +10,4 @@ struct md_latex_data {
 
 int md_latex(const MD_CHAR* input, MD_SIZE input_size, md_latex_data* data);
 void set_title(char const* title);
+void transmogrify_free(md_latex_data* data);
