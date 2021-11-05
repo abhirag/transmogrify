@@ -1,5 +1,6 @@
 #include "transmogrify.h"
 
+#include <assert.h>
 #include <log.h>
 #include <md4c.h>
 #include <sds.h>
@@ -25,10 +26,16 @@ static int process_code_block(void* detail, md_latex_data* data);
 typedef struct config config;
 struct config {
   sds title;
-  sds author
+  sds author;
+  unsigned flags;
 };
 
-static config conf = {.title = (void*)0, .author = (void*)0};
+static config conf = {
+    .title = (void*)0,
+    .author = (void*)0,
+    .flags = (MD_FLAG_NOHTMLBLOCKS | MD_FLAG_NOHTMLSPANS |
+              MD_FLAG_NOINDENTEDCODEBLOCKS | MD_FLAG_LATEXMATHSPANS),
+};
 
 void set_title(char const* title) {
   if (conf.title == (void*)0) {
@@ -88,6 +95,45 @@ static int render_verbatim_len(MD_CHAR* text, MD_SIZE size,
         "string\n");
     return -1;
   }
+  data->output = str;
+  return 0;
+}
+
+int prepend_preamble(md_latex_data* data) {
+  assert(conf.author != (void*)0);
+  assert(conf.title != (void*)0);
+  sds preamble = sdscatprintf(
+      sdsempty(),
+      "\\documentclass{tufte-handout}\n"
+      "\\usepackage{amsmath}\n"
+      "\\usepackage{graphicx}\n"
+      "\\setkeys{Gin}{width=\\linewidth,totalheight=\\textheight,"
+      "keepaspectratio}\n"
+      "\\graphicspath{{graphics/}}\n"
+      "\\usepackage{booktabs}\n"
+      "\\usepackage{units}\n"
+      "\\usepackage{fancyvrb}\n"
+      "\\fvset{fontsize=\\normalsize}\n"
+      "\\usepackage{multicol}\n"
+      "\\usepackage{minted}\n"
+      "\\usemintedstyle{bw}\n"
+      "\\usepackage{FiraMono}\n"
+      "\\usepackage[T1]{fontenc}\n"
+      "\\usepackage{enumitem}\n"
+      "\\definecolor{carnelian}{rgb}{0.7, 0.11, 0.11}\n"
+      "\\usepackage{hyperref}\n"
+      "\\hypersetup{colorlinks=true, linkcolor=carnelian, filecolor=carnelian, "
+      "urlcolor=carnelian,}\n"
+      "\\title{%s}\n"
+      "\\author{%s}\n",
+      conf.title, conf.author);
+  sds str = sdscatsds(preamble, data->output);
+  if (!str) {
+    log_fatal(
+        "transmogrify::prepend_preamble failed in appending to SDS string\n");
+    return -1;
+  }
+  sdsfree(data->output);
   data->output = str;
   return 0;
 }
@@ -194,7 +240,7 @@ static void debug_log_callback(const char* msg, void* userdata) {}
 
 int md_latex(const MD_CHAR* input, MD_SIZE input_size, md_latex_data* data) {
   MD_PARSER parser = {0,
-                      data->flags,
+                      conf.flags,
                       enter_block_callback,
                       leave_block_callback,
                       enter_span_callback,

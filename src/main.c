@@ -15,13 +15,10 @@ int main(void) {
   bind_fns(ctx);
   sds s = sdsnew("(set-title \"testing123\") (set-author \"abhirag\")");
   eval_sds(ctx, s);
-  md_latex_data d = {
-      .flags = (MD_FLAG_NOHTMLBLOCKS | MD_FLAG_NOHTMLSPANS |
-                MD_FLAG_NOINDENTEDCODEBLOCKS | MD_FLAG_LATEXMATHSPANS),
-      .code_text = sdsempty(),
-      .output = sdsempty()};
+  md_latex_data d = {.code_text = sdsempty(), .output = sdsempty()};
   md_latex("```\nthis is a normal code block\n```",
            strlen("```\nthis is a normal code block\n```"), &d);
+  prepend_preamble(&d);
   log_trace("%s\n", d.output);
   transmogrify_free(&d);
   fe_close(ctx);

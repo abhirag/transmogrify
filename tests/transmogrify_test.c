@@ -4,12 +4,8 @@
 
 #include "utest.h"
 
-static unsigned flags = (MD_FLAG_NOHTMLBLOCKS | MD_FLAG_NOHTMLSPANS |
-                         MD_FLAG_NOINDENTEDCODEBLOCKS | MD_FLAG_LATEXMATHSPANS);
-
 UTEST(render, paragraph) {
-  md_latex_data d = {
-      .flags = flags, .code_text = sdsempty(), .output = sdsempty()};
+  md_latex_data d = {.code_text = sdsempty(), .output = sdsempty()};
   char const* input = "this is a paragraph";
   md_latex(input, strlen(input), &d);
   sds expected_output = sdsempty();
@@ -26,8 +22,7 @@ UTEST(render, paragraph) {
 }
 
 UTEST(render, normal_code_block) {
-  md_latex_data d = {
-      .flags = flags, .code_text = sdsempty(), .output = sdsempty()};
+  md_latex_data d = {.code_text = sdsempty(), .output = sdsempty()};
   char const* input = "```\nthis is a normal code block\n```";
   md_latex(input, strlen(input), &d);
   sds expected_output = sdsempty();
