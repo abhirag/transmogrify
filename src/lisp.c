@@ -7,6 +7,8 @@
 
 static char readsds(fe_Context* ctx, void* udata);
 static fe_Object* fe_readsds(fe_Context* ctx, sds s);
+static fe_Object* f_set_title(fe_Context* ctx, fe_Object* arg);
+static fe_Object* f_set_author(fe_Context* ctx, fe_Object* arg);
 
 static char readsds(fe_Context* ctx, void* udata) {
   sds s = (sds)udata;
@@ -38,6 +40,13 @@ static fe_Object* f_set_title(fe_Context* ctx, fe_Object* arg) {
   set_title(buf);
 }
 
+static fe_Object* f_set_author(fe_Context* ctx, fe_Object* arg) {
+  char buf[64];
+  fe_tostring(ctx, fe_nextarg(ctx, &arg), buf, sizeof(buf));
+  set_author(buf);
+}
+
 void bind_fns(fe_Context* ctx) {
   fe_set(ctx, fe_symbol(ctx, "set-title"), fe_cfunc(ctx, f_set_title));
+  fe_set(ctx, fe_symbol(ctx, "set-author"), fe_cfunc(ctx, f_set_author));
 }

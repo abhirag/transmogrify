@@ -13,7 +13,7 @@ int main(void) {
   void* data = malloc(size);
   fe_Context* ctx = fe_open(data, size);
   bind_fns(ctx);
-  sds s = sdsnew("(set-title \"testing123\")");
+  sds s = sdsnew("(set-title \"testing123\") (set-author \"abhirag\")");
   eval_sds(ctx, s);
   md_latex_data d = {
       .flags = (MD_FLAG_NOHTMLBLOCKS | MD_FLAG_NOHTMLSPANS |

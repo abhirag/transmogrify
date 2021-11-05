@@ -24,10 +24,11 @@ static int process_code_block(void* detail, md_latex_data* data);
 
 typedef struct config config;
 struct config {
-  sds title
+  sds title;
+  sds author
 };
 
-static config conf = {.title = (void*)0};
+static config conf = {.title = (void*)0, .author = (void*)0};
 
 void set_title(char const* title) {
   if (conf.title == (void*)0) {
@@ -39,6 +40,19 @@ void set_title(char const* title) {
 
   if (conf.title == (void*)0) {
     log_fatal("transmogrify::set_title failed\n");
+  }
+}
+
+void set_author(char const* author) {
+  if (conf.author == (void*)0) {
+    conf.author = sdsnew(author);
+  } else {
+    sdsclear(conf.author);
+    conf.author = sdscat(conf.author, author);
+  }
+
+  if (conf.author == (void*)0) {
+    log_fatal("transmogrify::set_author failed\n");
   }
 }
 
@@ -194,6 +208,7 @@ int md_latex(const MD_CHAR* input, MD_SIZE input_size, md_latex_data* data) {
 
 void transmogrify_free(md_latex_data* data) {
   sdsfree(conf.title);
+  sdsfree(conf.author);
   sdsfree(data->code_text);
   sdsfree(data->output);
 }
