@@ -13,7 +13,9 @@ int main(void) {
   void* data = malloc(size);
   fe_Context* ctx = fe_open(data, size);
   bind_fns(ctx);
-  sds s = sdsnew("(set-title \"testing123\") (set-author \"abhirag\")");
+  sds s = sdsnew(
+      "(set-title \"testing123\") (set-author \"abhirag\") (set-date \"7 June "
+      "2021\")");
   eval_sds(ctx, s);
   md_latex_data d = {.code_text = sdsempty(), .output = sdsempty()};
   md_latex("```\nthis is a normal code block\n```",

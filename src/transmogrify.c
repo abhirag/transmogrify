@@ -27,12 +27,14 @@ typedef struct config config;
 struct config {
   sds title;
   sds author;
+  sds date;
   unsigned flags;
 };
 
 static config conf = {
     .title = (void*)0,
     .author = (void*)0,
+    .date = (void*)0,
     .flags = (MD_FLAG_NOHTMLBLOCKS | MD_FLAG_NOHTMLSPANS |
               MD_FLAG_NOINDENTEDCODEBLOCKS | MD_FLAG_LATEXMATHSPANS),
 };
@@ -60,6 +62,19 @@ void set_author(char const* author) {
 
   if (conf.author == (void*)0) {
     log_fatal("transmogrify::set_author failed\n");
+  }
+}
+
+void set_date(char const* date) {
+  if (conf.date == (void*)0) {
+    conf.date = sdsnew(date);
+  } else {
+    sdsclear(conf.date);
+    conf.date = sdscat(conf.date, date);
+  }
+
+  if (conf.date == (void*)0) {
+    log_fatal("transmogrify::set_date failed\n");
   }
 }
 
@@ -125,8 +140,9 @@ int prepend_preamble(md_latex_data* data) {
       "\\hypersetup{colorlinks=true, linkcolor=carnelian, filecolor=carnelian, "
       "urlcolor=carnelian,}\n"
       "\\title{%s}\n"
-      "\\author{%s}\n",
-      conf.title, conf.author);
+      "\\author{%s}\n"
+      "\\date{%s}\n",
+      conf.title, conf.author, conf.date);
   sds str = sdscatsds(preamble, data->output);
   if (!str) {
     log_fatal(
@@ -255,6 +271,7 @@ int md_latex(const MD_CHAR* input, MD_SIZE input_size, md_latex_data* data) {
 void transmogrify_free(md_latex_data* data) {
   sdsfree(conf.title);
   sdsfree(conf.author);
+  sdsfree(conf.date);
   sdsfree(data->code_text);
   sdsfree(data->output);
 }
