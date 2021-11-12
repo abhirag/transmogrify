@@ -6,6 +6,7 @@
 #include <md4c.h>
 #include <sds.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "lisp.h"
 
@@ -27,6 +28,7 @@ static int accumulate_code_text(MD_CHAR* text, MD_SIZE size,
 static int process_code_block(void* detail, md_latex_data* data);
 static sds code_block_lang(MD_BLOCK_CODE_DETAIL* detail);
 static int process_config_code_block(void* detail, md_latex_data* data);
+static int process_fe_code_block(void* detail, md_latex_data* data);
 
 typedef struct config config;
 struct config {
@@ -81,6 +83,19 @@ void set_date(char const* date) {
   if (conf.date == (void*)0) {
     log_fatal("transmogrify::set_date failed\n");
   }
+}
+
+char* render_abstract(char* abstract) {
+  char const* begin_abstract = "\\begin{abstract}\n";
+  char const* end_abstract = "\n\\end{abstract}";
+  size_t output_size =
+      strlen(begin_abstract) + strlen(end_abstract) + strlen(abstract) + 1;
+  char* output = malloc(output_size);
+  memset(output, 0, output_size);
+  strcat(output, begin_abstract);
+  strcat(output, abstract);
+  strcat(output, end_abstract);
+  return output;
 }
 
 static int render_verbatim(MD_CHAR* text, md_latex_data* data) {
@@ -187,36 +202,62 @@ static int process_config_code_block(void* detail, md_latex_data* data) {
   void* fe_data = malloc(size);
   fe_Context* ctx = fe_open(fe_data, size);
   bind_fns(ctx);
-  eval_sds(ctx, data->code_text);
+  sds s = eval_sds(ctx, data->code_text);
   fe_close(ctx);
   free(fe_data);
   sdsfree(open_doc_block);
+  sdsfree(s);
+}
+
+static int process_fe_code_block(void* detail, md_latex_data* data) {
+  int return_val = 0;
+  int size = 1024 * 1024;
+  void* fe_data = malloc(size);
+  fe_Context* ctx = fe_open(fe_data, size);
+  bind_fns(ctx);
+  sds s = eval_sds(ctx, data->code_text);
+  if (render_verbatim_sds(s, data) == -1) {
+    return_val = -1;
+  }
+  fe_close(ctx);
+  free(fe_data);
+  sdsfree(s);
 }
 
 static int process_code_block(void* detail, md_latex_data* data) {
   MD_BLOCK_CODE_DETAIL* det = (MD_BLOCK_CODE_DETAIL*)detail;
+  int return_value = 0;
   sds lang = code_block_lang(det);
   sds config_lang = sdsnew("config");
+  sds fe_lang = sdsnew("fe");
   if (sdscmp(config_lang, lang) == 0) {
-    sdsfree(lang);
-    sdsfree(config_lang);
-    return process_config_code_block(detail, data);
+    return_value = process_config_code_block(detail, data);
+    goto end;
   }
-  sdsfree(lang);
-  sdsfree(config_lang);
+  if (sdscmp(fe_lang, lang) == 0) {
+    return_value = process_fe_code_block(detail, data);
+    goto end;
+  }
   if (render_verbatim("\\begin{minted}[frame=leftline, framesep=10pt, "
                       "fontsize=\\footnotesize]{text}\n",
                       data) == -1) {
-    return -1;
+    return_value = -1;
+    goto end;
   }
   if (render_verbatim_sds(data->code_text, data) == -1) {
-    return -1;
+    return_value = -1;
+    goto end;
   }
   if (render_verbatim("\n\\end{minted}", data) == -1) {
-    return -1;
+    return_value = -1;
+    goto end;
   }
 
-  return 0;
+end:
+  sdsfree(lang);
+  sdsfree(config_lang);
+  sdsfree(fe_lang);
+  return return_value;
 }
 
 static int enter_block_callback(MD_BLOCKTYPE type, void* detail,

@@ -12,4 +12,5 @@ int prepend_preamble(md_latex_data* data);
 void set_title(char const* title);
 void set_author(char const* author);
 void set_date(char const* date);
+char* render_abstract(char* abstract);
 void transmogrify_free(md_latex_data* data);
