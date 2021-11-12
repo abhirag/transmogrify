@@ -1,10 +1,13 @@
 #include "transmogrify.h"
 
 #include <assert.h>
+#include <fe.h>
 #include <log.h>
 #include <md4c.h>
 #include <sds.h>
 #include <stdio.h>
+
+#include "lisp.h"
 
 static int enter_block_callback(MD_BLOCKTYPE type, void* detail,
                                 void* userdata);
@@ -22,6 +25,8 @@ static int render_verbatim_len(MD_CHAR* text, MD_SIZE size,
 static int accumulate_code_text(MD_CHAR* text, MD_SIZE size,
                                 md_latex_data* data);
 static int process_code_block(void* detail, md_latex_data* data);
+static sds code_block_lang(MD_BLOCK_CODE_DETAIL* detail);
+static int process_config_code_block(void* detail, md_latex_data* data);
 
 typedef struct config config;
 struct config {
@@ -167,8 +172,38 @@ static int accumulate_code_text(MD_CHAR* text, MD_SIZE size,
   return 0;
 }
 
+static sds code_block_lang(MD_BLOCK_CODE_DETAIL* detail) {
+  size_t initlen = (size_t)(detail->lang.size);
+  sds lang = sdsnewlen(detail->lang.text, initlen);
+  return lang;
+}
+
+static int process_config_code_block(void* detail, md_latex_data* data) {
+  sds open_doc_block = sdsnew(
+      "\\begin{document}\n"
+      "\\maketitle\n");
+  assert(sdscmp(data->output, open_doc_block) == 0);
+  int size = 1024 * 1024;
+  void* fe_data = malloc(size);
+  fe_Context* ctx = fe_open(fe_data, size);
+  bind_fns(ctx);
+  eval_sds(ctx, data->code_text);
+  fe_close(ctx);
+  free(fe_data);
+  sdsfree(open_doc_block);
+}
+
 static int process_code_block(void* detail, md_latex_data* data) {
   MD_BLOCK_CODE_DETAIL* det = (MD_BLOCK_CODE_DETAIL*)detail;
+  sds lang = code_block_lang(det);
+  sds config_lang = sdsnew("config");
+  if (sdscmp(config_lang, lang) == 0) {
+    sdsfree(lang);
+    sdsfree(config_lang);
+    return process_config_code_block(detail, data);
+  }
+  sdsfree(lang);
+  sdsfree(config_lang);
   if (render_verbatim("\\begin{minted}[frame=leftline, framesep=10pt, "
                       "fontsize=\\footnotesize]{text}\n",
                       data) == -1) {
