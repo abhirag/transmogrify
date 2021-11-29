@@ -10,11 +10,15 @@ int main(void) {
       "```config\n(set-title \"testing123\") (set-author \"abhirag\") "
       "(set-date "
       "\"7 June "
-      "2021\")\n```\n test\n```fe\n(abstract \"this is abstract\")\n```",
-      strlen(
-          "```config\n(set-title \"testing123\") (set-author \"abhirag\") "
-          "(set-date \"7 June "
-          "2021\")\n```\n test\n```fe\n(abstract \"this is abstract\")\n```"),
+      "2021\") (set-pwidth 1000) (set-pheight 500)\n```\n "
+      "test\n```fe\n(abstract \"this is "
+      "abstract\")\n```\n```pikchr\narrow; box \"Hello!\"; arrow\n```",
+      strlen("```config\n(set-title \"testing123\") (set-author \"abhirag\") "
+             "(set-date "
+             "\"7 June "
+             "2021\") (set-pwidth 1000) (set-pheight 500)\n```\n "
+             "test\n```fe\n(abstract \"this is "
+             "abstract\")\n```\n```pikchr\narrow; box \"Hello!\"; arrow\n```"),
       &d);
   prepend_preamble(&d);
   log_trace("%s\n", d.output);

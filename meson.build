@@ -3,6 +3,8 @@ project('transmogrify', 'c',
   default_options : ['warning_level=3', 
                      'c_std=c11'])
 
+add_project_link_arguments(['-lm'], language : ['c'])
+
 md4c_sp = subproject('md4c')
 md4c = md4c_sp.get_variable('md4c_dep')
 

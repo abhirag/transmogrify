@@ -11,6 +11,8 @@ static fe_Object* f_set_title(fe_Context* ctx, fe_Object* arg);
 static fe_Object* f_set_author(fe_Context* ctx, fe_Object* arg);
 static fe_Object* f_set_date(fe_Context* ctx, fe_Object* arg);
 static fe_Object* f_abstract(fe_Context* ctx, fe_Object* arg);
+static fe_Object* f_set_pwidth(fe_Context* ctx, fe_Object* arg);
+static fe_Object* f_set_pheight(fe_Context* ctx, fe_Object* arg);
 
 static char readsds(fe_Context* ctx, void* udata) {
   sds s = (sds)udata;
@@ -64,6 +66,18 @@ static fe_Object* f_set_date(fe_Context* ctx, fe_Object* arg) {
   return fe_bool(ctx, 0);
 }
 
+static fe_Object* f_set_pwidth(fe_Context* ctx, fe_Object* arg) {
+  float pwidth = fe_tonumber(ctx, fe_nextarg(ctx, &arg));
+  set_pwidth((int)pwidth);
+  return fe_bool(ctx, 0);
+}
+
+static fe_Object* f_set_pheight(fe_Context* ctx, fe_Object* arg) {
+  float pheight = fe_tonumber(ctx, fe_nextarg(ctx, &arg));
+  set_pheight((int)pheight);
+  return fe_bool(ctx, 0);
+}
+
 static fe_Object* f_abstract(fe_Context* ctx, fe_Object* arg) {
   char buf[1000];
   fe_tostring(ctx, fe_nextarg(ctx, &arg), buf, sizeof(buf));
@@ -77,5 +91,7 @@ void bind_fns(fe_Context* ctx) {
   fe_set(ctx, fe_symbol(ctx, "set-title"), fe_cfunc(ctx, f_set_title));
   fe_set(ctx, fe_symbol(ctx, "set-author"), fe_cfunc(ctx, f_set_author));
   fe_set(ctx, fe_symbol(ctx, "set-date"), fe_cfunc(ctx, f_set_date));
+  fe_set(ctx, fe_symbol(ctx, "set-pwidth"), fe_cfunc(ctx, f_set_pwidth));
+  fe_set(ctx, fe_symbol(ctx, "set-pheight"), fe_cfunc(ctx, f_set_pheight));
   fe_set(ctx, fe_symbol(ctx, "abstract"), fe_cfunc(ctx, f_abstract));
 }

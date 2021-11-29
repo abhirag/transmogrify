@@ -4,6 +4,7 @@
 #include <fe.h>
 #include <log.h>
 #include <md4c.h>
+#include <pikchr.h>
 #include <sds.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,12 +30,15 @@ static int process_code_block(void* detail, md_latex_data* data);
 static sds code_block_lang(MD_BLOCK_CODE_DETAIL* detail);
 static int process_config_code_block(void* detail, md_latex_data* data);
 static int process_fe_code_block(void* detail, md_latex_data* data);
+static int process_pikchr_code_block(void* detail, md_latex_data* data);
 
 typedef struct config config;
 struct config {
   sds title;
   sds author;
   sds date;
+  int pwidth;
+  int pheight;
   unsigned flags;
 };
 
@@ -42,9 +46,15 @@ static config conf = {
     .title = (void*)0,
     .author = (void*)0,
     .date = (void*)0,
+    .pwidth = 0,
+    .pheight = 0,
     .flags = (MD_FLAG_NOHTMLBLOCKS | MD_FLAG_NOHTMLSPANS |
               MD_FLAG_NOINDENTEDCODEBLOCKS | MD_FLAG_LATEXMATHSPANS),
 };
+
+void set_pwidth(int pwidth) { conf.pwidth = pwidth; }
+
+void set_pheight(int pheight) { conf.pheight = pheight; }
 
 void set_title(char const* title) {
   if (conf.title == (void*)0) {
@@ -224,18 +234,42 @@ static int process_fe_code_block(void* detail, md_latex_data* data) {
   sdsfree(s);
 }
 
+static int process_pikchr_code_block(void* detail, md_latex_data* data) {
+  assert(conf.pwidth != 0);
+  assert(conf.pheight != 0);
+  unsigned mFlags = PIKCHR_PLAINTEXT_ERRORS;
+  char* svg =
+      pikchr(data->code_text, (void*)0, mFlags, &conf.pwidth, &conf.pheight);
+  if (conf.pwidth < 0) {
+    log_fatal(
+        "transmogrify::process_pikchr_code_block failed in generating svg text "
+        "due to: %s\n",
+        svg);
+    free(svg);
+    return -1;
+  }
+  log_trace("%s\n", svg);
+  free(svg);
+  return 0;
+}
+
 static int process_code_block(void* detail, md_latex_data* data) {
   MD_BLOCK_CODE_DETAIL* det = (MD_BLOCK_CODE_DETAIL*)detail;
   int return_value = 0;
   sds lang = code_block_lang(det);
   sds config_lang = sdsnew("config");
   sds fe_lang = sdsnew("fe");
+  sds pikchr_lang = sdsnew("pikchr");
   if (sdscmp(config_lang, lang) == 0) {
     return_value = process_config_code_block(detail, data);
     goto end;
   }
   if (sdscmp(fe_lang, lang) == 0) {
     return_value = process_fe_code_block(detail, data);
+    goto end;
+  }
+  if (sdscmp(pikchr_lang, lang) == 0) {
+    return_value = process_pikchr_code_block(detail, data);
     goto end;
   }
   if (render_verbatim("\\begin{minted}[frame=leftline, framesep=10pt, "
@@ -257,6 +291,7 @@ end:
   sdsfree(lang);
   sdsfree(config_lang);
   sdsfree(fe_lang);
+  sdsfree(pikchr_lang);
   return return_value;
 }
 
