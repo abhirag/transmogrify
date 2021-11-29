@@ -20,6 +20,9 @@ log = log_sp.get_variable('log_dep')
 pikchr_sp = subproject('pikchr')
 pikchr = pikchr_sp.get_variable('pikchr_dep')
 
+xxhash_sp = subproject('xxhash')
+xxhash = xxhash_sp.get_variable('xxhash_dep')
+
 inc = include_directories('include')
 transmogrify_src = files('src/transmogrify.c')
 lisp_src = files('src/lisp.c')
@@ -29,7 +32,7 @@ subdir('tests')
 transmogrify = executable('transmogrify', 
                           [transmogrify_src, lisp_src, 'src/main.c'],
                           include_directories: inc,
-                          dependencies: [md4c, sds, fe, log, pikchr])
+                          dependencies: [md4c, sds, fe, log, pikchr, xxhash])
 
 
 

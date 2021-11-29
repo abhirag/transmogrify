@@ -8,6 +8,7 @@
 #include <sds.h>
 #include <stdio.h>
 #include <string.h>
+#include <xxhash.h>
 
 #include "lisp.h"
 
@@ -151,6 +152,7 @@ int prepend_preamble(md_latex_data* data) {
       sdsempty(),
       "\\documentclass{tufte-handout}\n"
       "\\usepackage{amsmath}\n"
+      "\\usepackage{svg}\n"
       "\\usepackage{graphicx}\n"
       "\\setkeys{Gin}{width=\\linewidth,totalheight=\\textheight,"
       "keepaspectratio}\n"
@@ -237,6 +239,20 @@ static int process_fe_code_block(void* detail, md_latex_data* data) {
 static int process_pikchr_code_block(void* detail, md_latex_data* data) {
   assert(conf.pwidth != 0);
   assert(conf.pheight != 0);
+  int return_value = 0;
+  XXH64_state_t* const state = XXH64_createState();
+  if (state == (void*)0) {
+    log_fatal("transmogrify::process_pikchr_code_block failed in creating a hash state\n");
+    return_value = -1;
+    goto xxhash_cleanup;
+  }
+  XXH64_hash_t const seed = 0;
+  if (XXH64_reset(state, seed) == XXH_ERROR) {
+    log_fatal("transmogrify::process_pikchr_code_block failed in initializing the hash state\n");
+    return_value = -1;
+    goto xxhash_cleanup;
+  }
+
   unsigned mFlags = PIKCHR_PLAINTEXT_ERRORS;
   char* svg =
       pikchr(data->code_text, (void*)0, mFlags, &conf.pwidth, &conf.pheight);
@@ -245,12 +261,41 @@ static int process_pikchr_code_block(void* detail, md_latex_data* data) {
         "transmogrify::process_pikchr_code_block failed in generating svg text "
         "due to: %s\n",
         svg);
-    free(svg);
-    return -1;
+    return_value = -1;
+    goto pikchr_xxhash_cleanup;
   }
-  log_trace("%s\n", svg);
+  if (XXH64_update(state, svg, sizeof(svg)) == XXH_ERROR){
+    log_fatal("transmogrify::process_pikchr_code_block failed in feeding the state with input data\n");
+    return_value = -1;
+    goto pikchr_xxhash_cleanup;
+  }
+  XXH64_hash_t const hash = XXH64_digest(state);
+  sds fname = sdscatprintf(sdsempty(), "%lu.svg", hash);
+  FILE *fd = fopen(fname, "w");
+  if (fd == (void*)0) {
+    log_fatal("transmogrify::process_pikchr_code_block failed in opening file: %s\n", fname);
+    return_value = -1;
+    goto sds_pikchr_xxhash_cleanup;
+  }
+  if (fputs(svg, fd) == EOF){
+    log_fatal("transmogrify::process_pikchr_code_block failed in writing to file: %s\n", fname);
+    return_value = -1;
+  }
+sds s = sdscatprintf(sdsempty(), "\\begin{figure}\n"
+                       "  \\includesvg{%lu.svg}\n"
+                       "\\end{figure}", hash);
+if (render_verbatim_sds(s, data) == -1) {
+  return_value = -1;
+}
+sds_pikchr_xxhash_cleanup:
+  sdsfree(fname);
+  sdsfree(s);
+  fclose(fd);
+pikchr_xxhash_cleanup:
   free(svg);
-  return 0;
+xxhash_cleanup:
+  XXH64_freeState(state);
+  return return_value;
 }
 
 static int process_code_block(void* detail, md_latex_data* data) {
