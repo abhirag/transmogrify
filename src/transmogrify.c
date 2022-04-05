@@ -242,13 +242,17 @@ static int process_pikchr_code_block(void* detail, md_latex_data* data) {
   int return_value = 0;
   XXH64_state_t* const state = XXH64_createState();
   if (state == (void*)0) {
-    log_fatal("transmogrify::process_pikchr_code_block failed in creating a hash state\n");
+    log_fatal(
+        "transmogrify::process_pikchr_code_block failed in creating a hash "
+        "state\n");
     return_value = -1;
     goto xxhash_cleanup;
   }
   XXH64_hash_t const seed = 0;
   if (XXH64_reset(state, seed) == XXH_ERROR) {
-    log_fatal("transmogrify::process_pikchr_code_block failed in initializing the hash state\n");
+    log_fatal(
+        "transmogrify::process_pikchr_code_block failed in initializing the "
+        "hash state\n");
     return_value = -1;
     goto xxhash_cleanup;
   }
@@ -264,29 +268,39 @@ static int process_pikchr_code_block(void* detail, md_latex_data* data) {
     return_value = -1;
     goto pikchr_xxhash_cleanup;
   }
-  if (XXH64_update(state, svg, sizeof(svg)) == XXH_ERROR){
-    log_fatal("transmogrify::process_pikchr_code_block failed in feeding the state with input data\n");
+  if (XXH64_update(state, svg, sizeof(svg)) == XXH_ERROR) {
+    log_fatal(
+        "transmogrify::process_pikchr_code_block failed in feeding the state "
+        "with input data\n");
     return_value = -1;
     goto pikchr_xxhash_cleanup;
   }
   XXH64_hash_t const hash = XXH64_digest(state);
   sds fname = sdscatprintf(sdsempty(), "%lu.svg", hash);
-  FILE *fd = fopen(fname, "w");
+  FILE* fd = fopen(fname, "w");
   if (fd == (void*)0) {
-    log_fatal("transmogrify::process_pikchr_code_block failed in opening file: %s\n", fname);
+    log_fatal(
+        "transmogrify::process_pikchr_code_block failed in opening file: %s\n",
+        fname);
     return_value = -1;
     goto sds_pikchr_xxhash_cleanup;
   }
-  if (fputs(svg, fd) == EOF){
-    log_fatal("transmogrify::process_pikchr_code_block failed in writing to file: %s\n", fname);
+  if (fputs(svg, fd) == EOF) {
+    log_fatal(
+        "transmogrify::process_pikchr_code_block failed in writing to file: "
+        "%s\n",
+        fname);
     return_value = -1;
   }
-sds s = sdscatprintf(sdsempty(), "\\begin{figure}\n"
-                       "  \\includesvg{%lu.svg}\n"
-                       "\\end{figure}", hash);
-if (render_verbatim_sds(s, data) == -1) {
-  return_value = -1;
-}
+  sds s = sdscatprintf(sdsempty(),
+                       "\\begin{figure}\n"
+                       "\\fontfamily{lmss}\\fontsize{8pt}{10pt}\\selectfont"
+                       "  \\includesvg[width=100mm,height=200mm,keepaspectratio]{%lu.svg}\n"
+                       "\\end{figure}",
+                       hash);
+  if (render_verbatim_sds(s, data) == -1) {
+    return_value = -1;
+  }
 sds_pikchr_xxhash_cleanup:
   sdsfree(fname);
   sdsfree(s);
@@ -327,7 +341,7 @@ static int process_code_block(void* detail, md_latex_data* data) {
     return_value = -1;
     goto end;
   }
-  if (render_verbatim("\n\\end{minted}", data) == -1) {
+  if (render_verbatim("\n\\end{minted}\n", data) == -1) {
     return_value = -1;
     goto end;
   }
@@ -338,6 +352,54 @@ end:
   sdsfree(fe_lang);
   sdsfree(pikchr_lang);
   return return_value;
+}
+
+static int process_code_span(void* detail, md_latex_data* data) {
+  int rc = 0;
+  sds to_render = sdsnew("\\texttt{");
+  sds empty_str = sdsnew("");
+  if (sdscmp(data->code_text, empty_str) == 0) {
+    rc = 0;
+    goto end;
+  }
+  if (data->code_text[0] == 'f' && data->code_text[1] == 'e') {
+    sdsrange(data->code_text, 2, -1);
+    rc = process_fe_code_block(detail, data);
+    goto end;
+  }
+  to_render = sdscatfmt(to_render, "%S}", data->code_text);
+  rc = render_verbatim_sds(to_render, data);
+end:
+  sdsfree(to_render);
+  sdsfree(empty_str);
+  return rc;
+}
+
+static int render_open_h_block(MD_BLOCK_H_DETAIL* detail, md_latex_data* data) {
+  int rc = 0;
+  if (detail->level == 1) {
+    rc = render_verbatim("\\section{", data);
+  } else {
+    rc = render_verbatim("\\subsection{", data);
+  }
+  return rc;
+}
+
+static int render_closed_h_block(MD_BLOCK_H_DETAIL* detail,
+                                 md_latex_data* data) {
+  int rc = 0;
+  sds to_render = sdsempty();
+  if (detail->level == 1) {
+    to_render = sdscatfmt(to_render, "}\\label{sec:%u}", data->label);
+    rc = render_verbatim_sds(to_render, data);
+    if (rc == 0) {
+      data->label += 1;
+    }
+    sdsfree(to_render);
+  } else {
+    rc = render_verbatim("}", data);
+  }
+  return rc;
 }
 
 static int enter_block_callback(MD_BLOCKTYPE type, void* detail,
@@ -356,7 +418,13 @@ static int enter_block_callback(MD_BLOCKTYPE type, void* detail,
         return -1;
       }
       break;
-    case MD_BLOCK_CODE:  // noop
+    case MD_BLOCK_CODE:
+      sdsclear(d->code_text);
+      break;
+    case MD_BLOCK_H:
+      if (render_open_h_block((MD_BLOCK_H_DETAIL*)detail, d) == -1) {
+        return -1;
+      }
       break;
   }
   return 0;
@@ -378,15 +446,54 @@ static int leave_block_callback(MD_BLOCKTYPE type, void* detail,
         return -1;
       }
       break;
+    case MD_BLOCK_H:
+      if (render_closed_h_block((MD_BLOCK_H_DETAIL*)detail, d) == -1) {
+        return -1;
+      }
+      break;
   }
   return 0;
 }
 
 static int enter_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
+  md_latex_data* d = (md_latex_data*)userdata;
+  switch (type) {
+    case MD_SPAN_EM:
+      if (render_verbatim("\\textit{", d) == -1) {
+        return -1;
+      }
+      break;
+    case MD_SPAN_STRONG:
+      if (render_verbatim("\\textbf{", d) == -1) {
+        return -1;
+      }
+      break;
+    case MD_SPAN_CODE:
+      sdsclear(d->code_text);
+      break;
+  }
   return 0;
 }
 
 static int leave_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
+  md_latex_data* d = (md_latex_data*)userdata;
+  switch (type) {
+    case MD_SPAN_EM:
+      if (render_verbatim("}", d) == -1) {
+        return -1;
+      }
+      break;
+    case MD_SPAN_STRONG:
+      if (render_verbatim("}", d) == -1) {
+        return -1;
+      }
+      break;
+    case MD_SPAN_CODE:
+      if (process_code_span(detail, d) == -1) {
+        return -1;
+      }
+      break;
+  }
   return 0;
 }
 
