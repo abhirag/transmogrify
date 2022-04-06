@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <log.h>
-#include <malloc.h>
 #include <sds.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "transmogrify.h"
