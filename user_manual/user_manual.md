@@ -8,7 +8,7 @@
 
 ```fe
 (abstract (italic "Hello and welcome to the Transmogrify user manual. 
-Transmogrify is a tool to convert markdown sprinkled with some lisp to LaTeX. This user manual 
+Transmogrify is a tool that converts markdown sprinkled with some Lisp to LaTeX. This user manual 
 has also been generated using Transmogrify, so feel free to refer to its source for reference"))
 ```
 
